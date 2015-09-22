@@ -168,8 +168,8 @@ var vim = new ide.Plugin({
 
 		this.initRegisters();
 		
-		ide.plugins.on('workspace.add_child', this.setupEditor, this);
-		ide.win.addEventListener('focus', this.onFocus.bind(this));
+		ide.plugins.on('workspace.add', this.setupEditor, this);
+		window.addEventListener('focus', this.onFocus.bind(this));
 	},
 	
 	editorCommands: {
