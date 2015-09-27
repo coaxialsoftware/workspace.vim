@@ -50,35 +50,28 @@ function map(keymap, prefix, postfix)
 	
 function count(action)
 {
-	return function() {
+	var fn = function() {
 		var i = vim.count || 1;
 		while (i--)
 			ide.action(action);
 		vim.count = null;
 	};
+	
+	fn.action = action;
+	return fn;
 }
 		
 /**
  * Helper function for commands. Makes sure there is a valid editor
  */
-function verify(fn)
-{
-	return function() {
-		if (ide.editor.keymap instanceof ide.KeyMap)
-			fn.call(this, ide.editor);
-		else
-			return ide.Pass;
-	};
-}
-	
 function setState(name)
 {
-	return function() {
-		if (ide.editor.keymap instanceof ide.KeyMap)
-			ide.editor.keymap.state = name;
-		else
-			return ide.Pass;
+	var fn = function() {
+		ide.editor.setKeymapState(name);
 	};
+	
+	fn.action = name;
+	return fn;
 }
 	
 function yank(data)
@@ -91,11 +84,10 @@ function yank(data)
 	vim.registers[0].set(data);
 }
 	
-var enterCountMode = function(key) {
+function enterCountMode(key) {
 	vim.count = key;
-	if (ide.editor.keymap instanceof ide.KeyMap)
-		ide.editor.keymap.state = 'vim-count';
-};
+	ide.editor.setKeymapState('vim-count');
+}
 
 function Register(name)
 {
@@ -132,7 +124,7 @@ var vim = new ide.Plugin({
 		// Start in normal mode
 		if (editor.keymap instanceof ide.KeyMap)
 		{
-			editor.keymap.state = 'vim';
+			editor.setKeymapState('vim');
 			editor.cmd('inputDisable');
 			editor.cmd('showCursorWhenSelecting');
 		}
@@ -220,23 +212,26 @@ var vim = new ide.Plugin({
 			editor.replaceSelection(this.register.data);
 		},
 		
-		'vim.mode.insert': verify(function(editor)
+		'vim.mode.insert': function()
 		{
-			editor.keymap.state = 'vim-insert';
+			var editor = ide.editor;
+			editor.setKeymapState('vim-insert');
 			editor.cmd('inputEnable');
-		}),
+		},
 		
-		'vim.mode.normal': verify(function(editor)
+		'vim.mode.normal': function()
 		{
-			var lastInsert = editor.cmd('lastInsert');
-
-			editor.keymap.state = 'vim';
+		var
+			editor = ide.editor,
+			lastInsert = editor.cmd('lastInsert')
+		;
+			editor.setKeymapState('vim');
 			editor.cmd('inputDisable');
 			editor.cmd('selectClear');
 				
 			if (lastInsert)
 				vim.dotRegister.set(lastInsert);
-		}),
+		},
 		
 		'vim.mode.change': setState('vim-change'),
 		'vim.mode.select': setState('vim-select'),
@@ -318,7 +313,7 @@ var vim = new ide.Plugin({
 					vim.count += key;
 				else
 				{
-					vim.editorCommands.vim.mode.normal();
+					vim.editorCommands['vim.mode.normal']();
 					ide.keyboard.handleKey(key);
 				}
 			}
