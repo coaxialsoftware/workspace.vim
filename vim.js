@@ -133,7 +133,7 @@ var vim = new ide.Plugin({
 		if (editor.keymap instanceof ide.KeyMap)
 		{
 			editor.keymap.state = 'vim';
-			editor.cmd('disableInput');
+			editor.cmd('inputDisable');
 			editor.cmd('showCursorWhenSelecting');
 		}
 	},
@@ -168,8 +168,8 @@ var vim = new ide.Plugin({
 
 		this.initRegisters();
 		
-		ide.plugins.on('workspace.add_child', this.setupEditor, this);
-		ide.win.addEventListener('focus', this.onFocus.bind(this));
+		ide.plugins.on('workspace.add', this.setupEditor, this);
+		window.addEventListener('focus', this.onFocus.bind(this));
 	},
 	
 	editorCommands: {
@@ -178,12 +178,23 @@ var vim = new ide.Plugin({
 			yank(ide.editor.getSelection());
 		},
 		
-		insertDotRegister: function()
+		yankBlock: function()
+		{
+		var
+			editor = ide.editor,
+			data = editor.somethingSelected() ? 
+				editor.getSelection() :
+				editor.getLine()
+		;
+			yank("\n" + data);
+		},
+		
+		'insert.register.dot': function()
 		{
 			ide.editor.cmd('insert', [ vim.dotRegister.data ]);
 		},
 		
-		insertCharacterBelow: function()
+		insertCharBelow: function()
 		{
 			var e = ide.editor, pos, ch;
 
@@ -206,53 +217,35 @@ var vim = new ide.Plugin({
 			if (data[0]==="\n" && !editor.somethingSelected())
 				editor.cmd('goLineEnd');
 			
-			editor.cmd('replaceSelection', [ this.register.data ]);
+			editor.replaceSelection(this.register.data);
 		},
 		
-		yankBlock: function()
-		{
-		var
-			editor = ide.editor,
-			data = editor.somethingSelected() ? 
-				editor.getSelection() :
-				editor.getLine()
-		;
-			yank("\n" + data);
-		},
-		
-		enterInsertMode: verify(function(editor)
+		'vim.mode.insert': verify(function(editor)
 		{
 			editor.keymap.state = 'vim-insert';
-			editor.cmd('enableInput');
+			editor.cmd('inputEnable');
 		}),
 		
-		enterNormalMode: verify(function(editor)
+		'vim.mode.normal': verify(function(editor)
 		{
 			var lastInsert = editor.cmd('lastInsert');
 
 			editor.keymap.state = 'vim';
-			editor.cmd('disableInput');
-			editor.cmd('clearSelection');
+			editor.cmd('inputDisable');
+			editor.cmd('selectClear');
 				
 			if (lastInsert)
 				vim.dotRegister.set(lastInsert);
 		}),
 		
-		enterChangeMode: setState('vim-change'),
-		enterSelectMode: setState('vim-select'),
-		enterDeleteMode: setState('vim-delete'),
-		enterYankMode: setState('vim-yank'),
-		enterReplaceMode: setState('vim-replace'),
-		enterBlockSelectMode: setState('vim-block-select')
+		'vim.mode.change': setState('vim-change'),
+		'vim.mode.select': setState('vim-select'),
+		'vim.mode.delete': setState('vim-delete'),
+		'vim.mode.yank': setState('vim-yank'),
+		'vim.mode.replace': setState('vim-replace'),
+		'vim.mode.blockSelect': setState('vim-block-select')
 	},
 	
-	commands: {
-		
-		r: 'read',
-		e: 'edit'
-		
-	},
-
 	// Vim style bindings. NOTE Follow vimdoc index order
 	shortcuts: {
 		vim: _.extend({
@@ -281,51 +274,51 @@ var vim = new ide.Plugin({
 			'> >': count('indentMore'),
 			'&': count('replace'),
 			
-			'shift+a': 'goLineEnd enterInsertMode',
-			'shift+c': 'startSelect goLineEnd endSelect deleteSelection enterInsertMode',
-			'shift+d': 'delWrappedLineRight enterInsertMode',
-			'shift+o': 'goLineUp goLineEnd enterInsertMode newlineAndIndent',
+			'shift+a': 'goLineEnd vim.mode.insert',
+			'shift+c': 'startSelect goLineEnd endSelect delSelection vim.mode.insert',
+			'shift+d': 'delWrappedLineRight vim.mode.insert',
+			'shift+o': 'goLineUp goLineEnd vim.mode.insert insertLine',
 			'shift+n': count('findPrev'),
-			'shift+v': 'selectLine enterBlockSelectMode',
+			'shift+v': 'selectLine vim.mode.blockSelect',
 			'shift+y': 'yankBlock',
 			
 			'alt+.': 'moveNext',
 			'alt+,': 'movePrev',
 			':': 'ex',
 			
-			'a': count('goColumnRight enterInsertMode'),
-			'c': 'enterChangeMode',
-			'd': 'enterDeleteMode',
+			'a': count('goColumnRight vim.mode.insert'),
+			'c': 'vim.mode.change',
+			'd': 'vim.mode.delete',
 			'g a': 'ascii',
-			'g t': count('nextEditor'),
+			'g t': count('editorNext'),
 			'g g': 'goDocStart',
-			'g shift+t': count('prevEditor'),
+			'g shift+t': count('editorPrevious'),
 			'g f': 'find',
-			'i': 'enterInsertMode',
+			'i': 'vim.mode.insert',
 			'n': count('findNext'),
-			'o': 'goLineEnd enterInsertMode newlineAndIndent',
+			'o': 'goLineEnd vim.mode.insert insertLine',
 			'p': count('put'),
-			'r': 'enterReplaceMode',
+			'r': 'vim.more.replace',
 			'u': count('undo'),
-			'v': 'enterSelectMode',
-			'y': 'enterYankMode',
+			'v': 'vim.mode.select',
+			'y': 'vim.mode.yank',
 			'z c': 'fold',
 			'z o': 'unfold',
 			
-			insert: 'enterInsertMode'
+			insert: 'vim.mode.insert'
 
 		}, map(MOTION)),
 		
 		'vim-count': {
-			esc: 'enterNormalMode',
-			'mod+[': 'enterNormalMode',
+			esc: 'vim.mode.normal',
+			'mod+[': 'vim.mode.normal',
 			
 			all: function(key) {
 				if (key.length===1 && /\d/.test(key))
 					vim.count += key;
 				else
 				{
-					vim.editorCommands.enterNormalMode();
+					vim.editorCommands.vim.mode.normal();
 					ide.keyboard.handleKey(key);
 				}
 			}
@@ -333,8 +326,8 @@ var vim = new ide.Plugin({
 		
 		'vim-replace': {
 			
-			esc: 'enterNormalMode',
-			'mod+[': 'enterNormalMode',
+			esc: 'vim.mode.normal',
+			'mod+[': 'vim.mode.normal',
 			
 			all: function(key) {
 				
@@ -344,59 +337,59 @@ var vim = new ide.Plugin({
 				if (ide.editor && ide.editor.replaceSelection &&
 					key.length===1)
 					ide.editor.replaceSelection(key);
-				ide.cmd('enterNormalMode');
+				ide.run('vim.mode.normal');
 			}
 			
 		},
 		
 		'vim-yank': _.extend({
-			esc: 'enterNormalMode',
-			'mod+[': 'enterNormalMode',
-			'y': 'yankBlock enterNormalMode'
-		}, map(MOTION, 'startSelect', 'endSelect yank clearSelection enterNormalMode')),
+			esc: 'vim.mode.normal',
+			'mod+[': 'vim.mode.normal',
+			'y': 'yankBlock vim.mode.normal'
+		}, map(MOTION, 'selectStart', 'selectEnd yank selectClear vim.mode.normal')),
 		
 		'vim-change': _.extend({
-			esc: 'enterNormalMode',
-			'mod+[': 'enterNormalMode'
-		}, map(MOTION, 'startSelect', 'endSelect deleteSelection enterInsertMode')),
+			esc: 'vim.mode.normal',
+			'mod+[': 'vim.mode.normal'
+		}, map(MOTION, 'selectStart', 'selectEnd delSelection vim.mode.insert')),
 		
 		'vim-delete': _.extend({
-			esc: 'enterNormalMode',
-			'mod+[': 'enterNormalMode',
-			'd': count('yankBlock deleteLine enterNormalMode'),
-		}, map(MOTION, 'startSelect', 'endSelect yank deleteSelection enterNormalMode')),
+			esc: 'vim.mode.normal',
+			'mod+[': 'vim.mode.normal',
+			'd': count('yankBlock delLine vim.mode.normal'),
+		}, map(MOTION, 'selectStart', 'selectEnd yank delSelection vim.mode.normal')),
 		
 		'vim-select': _.extend({
-			'd': 'yank deleteSelection enterNormalMode',
-			'y': 'yank enterNormalMode',
-			'>': count('indentMore enterNormalMode'),
-			'<': count('indentLess enterNormalMode'),
-			'p': count('put enterNormalMode'),
-			'=': 'indentAuto enterNormalMode',
+			'd': 'yank delSelection vim.mode.normal',
+			'y': 'yank vim.mode.normal',
+			'>': count('indentMore vim.mode.normal'),
+			'<': count('indentLess vim.mode.normal'),
+			'p': count('put vim.mode.normal'),
+			'=': 'indentAuto vim.mode.normal',
 			
-			esc: 'enterNormalMode',
-			'mod+[': 'enterNormalMode'
-		}, map(MOTION, 'startSelect', 'endSelect')),
+			esc: 'vim.mode.normal',
+			'mod+[': 'vim.mode.normal'
+		}, map(MOTION, 'selectStart', 'selectEnd')),
 					 
 		'vim-block-select': _.extend({
-			d: 'yankBlock deleteSelection enterNormalMode',
-			y: 'yankBlock enterNormalMode',
-			p: count('put enterNormalMode'),
-			'>': count('indentMore enterNormalMode'),
-			'<': count('indentLess enterNormalMode'),
-			'=': 'indentAuto enterNormalMode',
+			d: 'yankBlock delSelection vim.mode.normal',
+			y: 'yankBlock vim.mode.normal',
+			p: count('put vim.mode.normal'),
+			'>': count('indentMore vim.mode.normal'),
+			'<': count('indentLess vim.mode.normal'),
+			'=': 'indentAuto vim.mode.normal',
 			
-			esc: 'enterNormalMode',
-			'mod+[': 'enterNormalMode'
-		 }, map(MOTION, 'startSelect', 'selectLine endSelect')),
+			esc: 'vim.mode.normal',
+			'mod+[': 'vim.mode.normal'
+		 }, map(MOTION, 'selectStart', 'selectLine selectEnd')),
 
 		'vim-insert': {
-			'mod+@': 'insertDotRegister enterNormalMode',
+			'mod+@': 'insertDotRegister vim.mode.normal',
 			'mod+a': 'insertDotRegister',
 			'mod+d': 'indentLess',
 			'mod+h': 'delCharBefore',
-			'mod+j': 'newlineAndIndent',
-			'mod+m': 'newlineAndIndent',
+			'mod+j': 'insertLine',
+			'mod+m': 'insertLine',
 			'mod+t': 'indentMore',
 			'mod+w': 'delWordAfter',
 			'alt+enter': 'ex',
@@ -410,7 +403,7 @@ var vim = new ide.Plugin({
 			pagedown: 'goPageDown',
 			end: 'goLineEnd',
 			home: 'goLineStart',
-			enter: 'newline',
+			enter: 'insertLine',
 			'shift+up': 'goPageUp',
 			'shift+down': 'goPageDown',
 			'mod+home': 'goDocStart',
@@ -420,8 +413,8 @@ var vim = new ide.Plugin({
 			'mod+right': 'goGroupRight',
 			'shift+left': 'goGroupLeft',
 			'shift+right': 'goGroupRight',
-			'esc': 'enterNormalMode',
-			'mod+[': 'enterNormalMode',
+			'esc': 'vim.mode.normal',
+			'mod+[': 'vim.mode.normal',
 			'mod+del': 'delGroupAfter',
 		}
 	}
