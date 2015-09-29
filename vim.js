@@ -126,7 +126,7 @@ var vim = new ide.Plugin({
 		{
 			editor.setKeymapState('vim');
 			editor.cmd('inputDisable');
-			editor.cmd('showCursorWhenSelecting');
+			editor.set('showCursorWhenSelecting', true);
 		}
 	},
 	
@@ -267,7 +267,7 @@ var vim = new ide.Plugin({
 			'< <': count('indentLess'),
 			'= =': 'indentAuto',
 			'> >': count('indentMore'),
-			'&': count('replace'),
+			'&': count('searchReplace'),
 			
 			'shift+a': 'goLineEnd vim.mode.insert',
 			'shift+c': 'startSelect goLineEnd endSelect delSelection vim.mode.insert',
