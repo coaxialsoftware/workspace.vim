@@ -293,7 +293,7 @@ var vim = new ide.Plugin({
 			'n': count('findNext'),
 			'o': 'goLineEnd vim.mode.insert insertLine',
 			'p': count('put'),
-			'r': 'vim.more.replace',
+			'r': 'vim.mode.replace',
 			'u': count('undo'),
 			'v': 'vim.mode.select',
 			'y': 'vim.mode.yank',
