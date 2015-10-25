@@ -86,7 +86,7 @@ function yank(data)
 	
 function enterCountMode(key) {
 	vim.count = key;
-	ide.editor.setKeymapState('vim-count');
+	ide.editor.setKeynullState('vim-count');
 }
 
 function Register(name)
@@ -118,7 +118,7 @@ var vim = new ide.Plugin({
 	registers: null,
 	count: null,
 	
-	// VIM Mode only supported for editors that have their own keymap.
+	// VIM Mode only supported for editors that have their own keynull.
 	setupEditor: function(editor)
 	{
 		// Start in normal mode
@@ -251,6 +251,7 @@ var vim = new ide.Plugin({
 			space: count('goCharRight'),
 			'/': 'searchbar',
 			'?': 'searchbarReverse',
+			'*': 'search',
 			'f1': 'help',
 			'f10': 'assist',
 			
