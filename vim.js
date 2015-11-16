@@ -126,7 +126,7 @@ var vim = new ide.Plugin({
 		{
 			editor.setKeymapState('vim');
 			editor.cmd('inputDisable');
-			editor.set('showCursorWhenSelecting', true);
+			editor.option('showCursorWhenSelecting', true);
 		}
 	},
 	
