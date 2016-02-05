@@ -155,7 +155,9 @@ var vim = new ide.Plugin({
 
 	ready: function()
 	{
-		if (ide.project.get('keymap')!=='vim')
+		var keymap = ide.project.get('keymap');
+
+		if (keymap && keymap!=='vim')
 			return;
 
 		this.initRegisters();
