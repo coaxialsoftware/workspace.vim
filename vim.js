@@ -160,6 +160,9 @@ var vim = new ide.Plugin({
 		if (keymap && keymap!=='vim')
 			return;
 
+		if (!keymap)
+			ide.project.set('keymap', 'vim');
+
 		this.initRegisters();
 		
 		ide.plugins.on('workspace.add', this.setupEditor, this);
