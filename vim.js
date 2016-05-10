@@ -67,7 +67,7 @@ function count(action)
 function setState(name)
 {
 	var fn = function() {
-		ide.editor.setKeymapState(name);
+		ide.editor.keymap.setState(name);
 	};
 
 	fn.action = name;
@@ -86,7 +86,7 @@ function yank(data)
 
 function enterCountMode(key) {
 	vim.count = key;
-	ide.editor.setKeymapState('vim-count');
+	ide.editor.keymap.setState('vim-count');
 }
 
 function Register(name)
@@ -124,7 +124,7 @@ var vim = new ide.Plugin({
 		// Start in normal mode
 		if (editor.keymap instanceof ide.KeyMap)
 		{
-			editor.setKeymapState('vim');
+			editor.keymap.setState('vim');
 			editor.cmd('inputDisable');
 			editor.option('showCursorWhenSelecting', true);
 		}
@@ -220,7 +220,7 @@ var vim = new ide.Plugin({
 		'vim.mode.insert': function()
 		{
 			var editor = ide.editor;
-			editor.setKeymapState('vim-insert');
+			editor.keymap.setState('vim-insert');
 			editor.cmd('inputEnable');
 		},
 
@@ -230,7 +230,7 @@ var vim = new ide.Plugin({
 			editor = ide.editor,
 			lastInsert = editor.cmd('lastInsert')
 		;
-			editor.setKeymapState('vim');
+			editor.keymap.setState('vim');
 			editor.cmd('inputDisable');
 			editor.cmd('selectClear');
 
