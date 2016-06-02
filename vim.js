@@ -219,9 +219,12 @@ var vim = new ide.Plugin({
 
 		'vim.mode.insert': function()
 		{
-			var editor = ide.editor;
-			editor.keymap.setState('vim-insert');
-			editor.cmd('inputEnable');
+		var
+			editor = ide.editor,
+			support = editor.cmd('inputEnable')
+		;
+			if (support !== ide.Pass)
+				editor.keymap.setState('vim-insert');
 		},
 
 		'vim.mode.normal': function()
