@@ -306,7 +306,8 @@ var vim = new ide.Plugin({
 			'z c': 'fold',
 			'z o': 'unfold',
 
-			insert: 'vim.mode.insert'
+			insert: 'vim.mode.insert',
+			enter: 'goLineDown'
 
 		}, map(MOTION)),
 
