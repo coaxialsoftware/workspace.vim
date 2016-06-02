@@ -248,8 +248,10 @@ var vim = new ide.Plugin({
 
 	// Vim style bindings. NOTE Follow vimdoc index order
 	shortcuts: {
+
 		vim: _.extend({
 
+			'mod+[': 'vim.mode.normal',
 			'mod+g': 'showInfo',
 			backspace: count('goCharLeft'),
 			'mod+r': count('redo'),
@@ -283,8 +285,6 @@ var vim = new ide.Plugin({
 			'shift+v': 'selectLine vim.mode.blockSelect',
 			'shift+y': 'yankBlock',
 
-			'alt+.': 'moveNext',
-			'alt+,': 'movePrev',
 			':': 'ex',
 
 			'a': count('goColumnRight vim.mode.insert'),
