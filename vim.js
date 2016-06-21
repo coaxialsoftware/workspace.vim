@@ -23,6 +23,7 @@ var
 		k: 'goLineUp',
 		j: 'goLineDown',
 		'mod+j': 'goLineDown',
+		'mod+p': 'goLineUp',
 		w: 'goGroupRight',
 		b: 'goGroupLeft',
 		down: 'goLineDown',
@@ -48,15 +49,26 @@ function map(keymap, prefix, postfix)
 	}, {});
 }
 
-function count(action)
+function count(action, def)
 {
 	var fn = function() {
-		var i = vim.count || 1;
+		var i = vim.count || def || 1;
 		while (i--)
 			ide.action(action);
 		vim.count = null;
 	};
 
+	fn.action = action;
+	return fn;
+}
+	
+function countParam(action)
+{
+	var fn = function() {
+		ide.run(action, [ vim.count ]);
+		vim.count = null;
+	};
+	
 	fn.action = action;
 	return fn;
 }
@@ -109,6 +121,7 @@ _.extend(Register.prototype, {
 	{
 		this.data = data || '';
 		vim.data('register.' + this.name, this.data);
+		vim.register = vim.defaultRegister;
 	}
 
 });
@@ -116,6 +129,13 @@ _.extend(Register.prototype, {
 var vim = new ide.Plugin({
 
 	registers: null,
+	// Active register
+	register: null,
+	// Default Reigster (")
+	defaultRegister: null,
+	dotRegister: null,
+	clipboardRegister: null,
+	// Current Count
 	count: null,
 
 	// VIM Mode only supported for editors that have their own keynull.
@@ -133,7 +153,7 @@ var vim = new ide.Plugin({
 	initRegisters: function()
 	{
 		var r = this.registers = {
-			'"': this.register = new Register('"'),
+			'"': this.register = this.defaultRegister = new Register('"'),
 			'.': this.dotRegister = new Register('.'),
 			'*': this.clipboardRegister = new Register('*')
 		};
@@ -246,22 +266,26 @@ var vim = new ide.Plugin({
 		'vim.mode.delete': setState('vim-delete'),
 		'vim.mode.yank': setState('vim-yank'),
 		'vim.mode.replace': setState('vim-replace'),
-		'vim.mode.blockSelect': setState('vim-block-select')
+		'vim.mode.blockSelect': setState('vim-block-select'),
+		'vim.mode.register': setState('vim-register')
 	},
 
 	// Vim style bindings. NOTE Follow vimdoc index order
 	shortcuts: {
 
 		vim: _.extend({
-
-			'mod+[': 'vim.mode.normal',
-			'mod+g': 'showInfo',
+			
 			backspace: count('goCharLeft'),
-			'mod+r': count('redo'),
 			space: count('goCharRight'),
 			'/': 'searchbar',
 			'?': 'searchbarReverse',
 			'*': 'search',
+			'< <': count('indentLess'),
+			'= =': 'indentAuto',
+			'> >': count('indentMore'),
+			'&': count('searchReplace'),
+			':': 'ex',
+			
 			'f1': 'help',
 			'f10': 'assist',
 
@@ -274,11 +298,15 @@ var vim = new ide.Plugin({
 			7: enterCountMode,
 			8: enterCountMode,
 			9: enterCountMode,
-
-			'< <': count('indentLess'),
-			'= =': 'indentAuto',
-			'> >': count('indentMore'),
-			'&': count('searchReplace'),
+			
+			'mod+[': 'vim.mode.normal',
+			'mod+b': count('scrollScreenUp'),
+			'mod+d': countParam('scrollLineDown'),
+			'mod+f': count('scrollScreenDown'),
+			'mod+g': 'showInfo',
+			'mod+r': count('redo'),
+			'mod+u': countParam('scrollLineUp'),
+			'mod+y': countParam('scrollLineDown'),
 
 			'shift+a': 'goLineEnd vim.mode.insert',
 			'shift+c': 'startSelect goLineEnd endSelect delSelection vim.mode.insert',
@@ -287,8 +315,6 @@ var vim = new ide.Plugin({
 			'shift+n': count('findPrev'),
 			'shift+v': 'selectLine vim.mode.blockSelect',
 			'shift+y': 'yankBlock',
-
-			':': 'ex',
 
 			'a': count('goColumnRight vim.mode.insert'),
 			'c': 'vim.mode.change',
@@ -327,6 +353,12 @@ var vim = new ide.Plugin({
 					ide.keyboard.handleKey(key);
 				}
 			}
+		},
+		
+		'vim-register': {
+			
+			
+			
 		},
 
 		'vim-replace': {
@@ -393,8 +425,10 @@ var vim = new ide.Plugin({
 			'mod+a': 'insertDotRegister',
 			'mod+d': 'indentLess',
 			'mod+h': 'delCharBefore',
+			'mod+i': 'insertTab',
 			'mod+j': 'insertLine',
 			'mod+m': 'insertLine',
+			'mod+n': 'search',
 			'mod+t': 'indentMore',
 			'mod+w': 'delWordAfter',
 			'alt+enter': 'ex',
