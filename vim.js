@@ -61,14 +61,14 @@ function count(action, def)
 	fn.action = action;
 	return fn;
 }
-	
+
 function countParam(action)
 {
 	var fn = function() {
 		ide.run(action, [ vim.count ]);
 		vim.count = null;
 	};
-	
+
 	fn.action = action;
 	return fn;
 }
@@ -84,6 +84,14 @@ function setState(name)
 
 	fn.action = name;
 	return fn;
+}
+
+function setRegister(name)
+{
+	return function() {
+		vim.register = vim.registers[name] || vim.defaultRegister;
+		ide.editor.keymap.setState('vim');
+	};
 }
 
 function yank(data)
@@ -274,7 +282,7 @@ var vim = new ide.Plugin({
 	shortcuts: {
 
 		vim: _.extend({
-			
+
 			backspace: count('goCharLeft'),
 			space: count('goCharRight'),
 			'/': 'searchbar',
@@ -284,8 +292,9 @@ var vim = new ide.Plugin({
 			'= =': 'indentAuto',
 			'> >': count('indentMore'),
 			'&': count('searchReplace'),
+			'"': setState('vim-register'),
 			':': 'ex',
-			
+
 			'f1': 'help',
 			'f10': 'assist',
 
@@ -298,7 +307,7 @@ var vim = new ide.Plugin({
 			7: enterCountMode,
 			8: enterCountMode,
 			9: enterCountMode,
-			
+
 			'mod+[': 'vim.mode.normal',
 			'mod+b': count('scrollScreenUp'),
 			'mod+d': countParam('scrollLineDown'),
@@ -354,11 +363,26 @@ var vim = new ide.Plugin({
 				}
 			}
 		},
-		
+
 		'vim-register': {
-			
-			
-			
+			'"': setRegister('"'),
+			'.': setRegister('.'),
+			'*': setRegister('*'),
+			0: setRegister(0),
+			1: setRegister(1),
+			2: setRegister(2),
+			3: setRegister(3),
+			4: setRegister(4),
+			5: setRegister(5),
+			6: setRegister(6),
+			7: setRegister(7),
+			8: setRegister(8),
+			9: setRegister(9),
+
+			all: function()
+			{
+				ide.run('vim.mode.normal');
+			}
 		},
 
 		'vim-replace': {
@@ -403,6 +427,7 @@ var vim = new ide.Plugin({
 			'<': count('indentLess vim.mode.normal'),
 			'p': count('put vim.mode.normal'),
 			'=': 'indentAuto vim.mode.normal',
+			':': 'ex',
 
 			esc: 'vim.mode.normal',
 			'mod+[': 'vim.mode.normal'
@@ -415,6 +440,7 @@ var vim = new ide.Plugin({
 			'>': count('indentMore vim.mode.normal'),
 			'<': count('indentLess vim.mode.normal'),
 			'=': 'indentAuto vim.mode.normal',
+			':': 'ex',
 
 			esc: 'vim.mode.normal',
 			'mod+[': 'vim.mode.normal'
