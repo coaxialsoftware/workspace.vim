@@ -134,6 +134,17 @@ _.extend(Register.prototype, {
 
 });
 
+var RegisterList = ide.Editor.List.extend({
+
+	initialize: function()
+	{
+		vim.registers.forEach(function(a) {
+
+		}, this);
+	}
+
+});
+
 var vim = new ide.Plugin({
 
 	registers: null,
@@ -199,6 +210,7 @@ var vim = new ide.Plugin({
 
 	editorCommands: {
 
+		y: 'yank',
 		yank: function() {
 			yank(ide.editor.getSelection());
 		},
