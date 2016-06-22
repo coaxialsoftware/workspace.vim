@@ -306,6 +306,7 @@ var vim = new ide.Plugin({
 			'&': count('searchReplace'),
 			'"': setState('vim-register'),
 			':': 'ex',
+			'#': count('findPrev'),
 
 			'f1': 'help',
 			'f10': 'assist',
