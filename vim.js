@@ -329,11 +329,7 @@ var vim = new ide.Plugin({
 			'a': count('goColumnRight vim.mode.insert'),
 			'c': 'vim.mode.change',
 			'd': 'vim.mode.delete',
-			'g a': 'ascii',
-			'g t': count('editorNext'),
-			'g g': 'goDocStart',
-			'g shift+t': count('editorPrevious'),
-			'g f': 'find',
+			'g': setState('vim-go'),
 			'i': 'vim.mode.insert',
 			'n': count('findNext'),
 			'o': 'goLineEnd vim.mode.insert insertLine',
@@ -349,6 +345,16 @@ var vim = new ide.Plugin({
 			enter: 'goLineDown'
 
 		}, map(MOTION)),
+		
+		'vim-go': {
+			a: 'ascii vim.mode.normal',
+			'shift+d': 'ijump vim.mode.normal',
+			t: count('editorNext vim.mode.normal'),
+			g: 'goDocStart vim.mode.normal',
+			'shift+t': count('editorPrevious vim.model.normal'),
+			f: 'find vim.mode.normal',
+			all: 'vim.mode.normal'
+		},
 
 		'vim-count': {
 			esc: 'vim.mode.normal',
