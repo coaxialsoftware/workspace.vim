@@ -44,17 +44,20 @@ var
 function map(keymap, prefix, postfix)
 {
 	return _.reduce(keymap, function(result, v, k) {
-		result[k] = count((prefix ? prefix + ' ' : '') + v + (postfix ? ' ' + postfix : ''));
+		result[k] = count((prefix ? prefix + '; ' : '') + v + (postfix ? '; ' + postfix : ''));
 		return result;
 	}, {});
 }
 
 function count(action, def)
 {
+	var handler = ide.action(action);
+
 	var fn = function() {
 		var i = vim.count || def || 1;
 		while (i--)
-			ide.action(action);
+			handler();
+
 		vim.count = null;
 	};
 
@@ -330,15 +333,15 @@ var vim = new ide.Plugin({
 			'mod+u': countParam('scrollLineUp'),
 			'mod+y': countParam('scrollLineDown'),
 
-			'shift+a': 'goLineEnd vim.mode.insert',
-			'shift+c': 'startSelect goLineEnd endSelect delSelection vim.mode.insert',
-			'shift+d': 'delWrappedLineRight vim.mode.insert',
-			'shift+o': 'goLineUp goLineEnd vim.mode.insert insertLine',
+			'shift+a': 'goLineEnd; vim.mode.insert',
+			'shift+c': 'startSelect; goLineEnd; endSelect; delSelection; vim.mode.insert',
+			'shift+d': 'delWrappedLineRight; vim.mode.insert',
+			'shift+o': 'goLineUp; goLineEnd; vim.mode.insert; insertLine',
 			'shift+n': count('findPrev'),
-			'shift+v': 'selectLine vim.mode.blockSelect',
+			'shift+v': 'selectLine; vim.mode.blockSelect',
 			'shift+y': 'yankBlock',
 
-			'a': count('goColumnRight vim.mode.insert'),
+			'a': count('goColumnRight; vim.mode.insert'),
 			'c': 'vim.mode.change',
 			'd': 'vim.mode.delete',
 			'g': setState('vim-go'),
@@ -350,7 +353,7 @@ var vim = new ide.Plugin({
 			'g f': 'find',
 			'i': 'vim.mode.insert',
 			'n': count('findNext'),
-			'o': 'goLineEnd vim.mode.insert insertLine',
+			'o': 'goLineEnd; vim.mode.insert; insertLine',
 			'p': count('put'),
 			'r': 'vim.mode.replace',
 			'u': count('undo'),
@@ -363,14 +366,14 @@ var vim = new ide.Plugin({
 			enter: 'goLineDown'
 
 		}, map(MOTION)),
-		
+
 		'vim-go': {
-			a: 'ascii vim.mode.normal',
-			'shift+d': 'ijump vim.mode.normal',
-			t: count('editorNext vim.mode.normal'),
-			g: 'goDocStart vim.mode.normal',
-			'shift+t': count('editorPrevious vim.model.normal'),
-			f: 'find vim.mode.normal',
+			a: 'ascii; vim.mode.normal',
+			'shift+d': 'ijump; vim.mode.normal',
+			t: count('editorNext; vim.mode.normal'),
+			g: 'goDocStart; vim.mode.normal',
+			'shift+t': count('editorPrevious; vim.model.normal'),
+			f: 'find; vim.mode.normal',
 			all: 'vim.mode.normal'
 		},
 
@@ -432,26 +435,26 @@ var vim = new ide.Plugin({
 			esc: 'vim.mode.normal',
 			'mod+[': 'vim.mode.normal',
 			'y': 'yankBlock vim.mode.normal'
-		}, map(MOTION, 'selectStart', 'selectEnd yank selectClear vim.mode.normal')),
+		}, map(MOTION, 'selectStart', 'selectEnd; yank; selectClear; vim.mode.normal')),
 
 		'vim-change': _.extend({
 			esc: 'vim.mode.normal',
 			'mod+[': 'vim.mode.normal'
-		}, map(MOTION, 'selectStart', 'selectEnd delSelection vim.mode.insert')),
+		}, map(MOTION, 'selectStart', 'selectEnd; delSelection; vim.mode.insert')),
 
 		'vim-delete': _.extend({
 			esc: 'vim.mode.normal',
 			'mod+[': 'vim.mode.normal',
-			'd': count('yankBlock delLine vim.mode.normal'),
-		}, map(MOTION, 'selectStart', 'selectEnd yank delSelection vim.mode.normal')),
+			'd': count('yankBlock; delLine; vim.mode.normal'),
+		}, map(MOTION, 'selectStart', 'selectEnd; yank; delSelection; vim.mode.normal')),
 
 		'vim-select': _.extend({
-			'd': 'yank delSelection vim.mode.normal',
-			'y': 'yank vim.mode.normal',
-			'>': count('indentMore vim.mode.normal'),
-			'<': count('indentLess vim.mode.normal'),
-			'p': count('put vim.mode.normal'),
-			'=': 'indentAuto vim.mode.normal',
+			'd': 'yank; delSelection; vim.mode.normal',
+			'y': 'yank; vim.mode.normal',
+			'>': count('indentMore; vim.mode.normal'),
+			'<': count('indentLess; vim.mode.normal'),
+			'p': count('put; vim.mode.normal'),
+			'=': 'indentAuto; vim.mode.normal',
 			':': 'ex',
 
 			esc: 'vim.mode.normal',
@@ -459,20 +462,20 @@ var vim = new ide.Plugin({
 		}, map(MOTION, 'selectStart', 'selectEnd')),
 
 		'vim-block-select': _.extend({
-			d: 'yankBlock delSelection vim.mode.normal',
-			y: 'yankBlock vim.mode.normal',
-			p: count('put vim.mode.normal'),
-			'>': count('indentMore vim.mode.normal'),
-			'<': count('indentLess vim.mode.normal'),
-			'=': 'indentAuto vim.mode.normal',
+			d: 'yankBlock; delSelection; vim.mode.normal',
+			y: 'yankBlock; vim.mode.normal',
+			p: count('put; vim.mode.normal'),
+			'>': count('indentMore; vim.mode.normal'),
+			'<': count('indentLess; vim.mode.normal'),
+			'=': 'indentAuto; vim.mode.normal',
 			':': 'ex',
 
 			esc: 'vim.mode.normal',
 			'mod+[': 'vim.mode.normal'
-		 }, map(MOTION, 'selectStart', 'selectLine selectEnd')),
+		 }, map(MOTION, 'selectStart', 'selectLine; selectEnd')),
 
 		'vim-insert': {
-			'mod+@': 'insertDotRegister vim.mode.normal',
+			'mod+@': 'insertDotRegister; vim.mode.normal',
 			'mod+a': 'insertDotRegister',
 			'mod+d': 'indentLess',
 			'mod+h': 'delCharBefore',
