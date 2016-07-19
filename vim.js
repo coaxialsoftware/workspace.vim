@@ -370,9 +370,9 @@ var vim = new ide.Plugin({
 		'vim-go': {
 			a: 'ascii; vim.mode.normal',
 			'shift+d': 'ijump; vim.mode.normal',
-			t: count('editorNext; vim.mode.normal'),
+			t: count('vim.mode.normal; editorNext'),
 			g: 'goDocStart; vim.mode.normal',
-			'shift+t': count('editorPrevious; vim.model.normal'),
+			'shift+t': count('vim.mode.normal; editorPrevious;'),
 			f: 'find; vim.mode.normal',
 			all: 'vim.mode.normal'
 		},
@@ -434,7 +434,7 @@ var vim = new ide.Plugin({
 		'vim-yank': _.extend({
 			esc: 'vim.mode.normal',
 			'mod+[': 'vim.mode.normal',
-			'y': 'yankBlock vim.mode.normal'
+			'y': 'yankBlock; vim.mode.normal'
 		}, map(MOTION, 'selectStart', 'selectEnd; yank; selectClear; vim.mode.normal')),
 
 		'vim-change': _.extend({
@@ -519,5 +519,8 @@ var vim = new ide.Plugin({
 });
 
 ide.plugins.register('vim', vim);
+ide.plugins.on('editor.keymap', function(keymap, editor) {
+	editor.title.setTag('state', keymap.state);
+});
 
 })(this.ide, this._);
