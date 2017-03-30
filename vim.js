@@ -3,35 +3,35 @@
  *
  */
 
-(function(ide, _) {
+(function(ide) {
 "use strict";
 
 var
 	MOTION = {
-		h: 'goColumnLeft',
-		'mod+h': 'goColumnLeft',
-		l: 'goColumnRight',
-		0: 'goLineStart',
-		$: 'goLineEnd',
-		home: 'goLineStart',
-		end: 'goLineEnd',
-		'mod+home': 'goDocStart',
-		'mod+end': 'goDocEnd',
-		'shift+g': 'goDocEnd',
-		'shift+left': 'goGroupLeft',
-		'shift+right': 'goGroupRight',
-		k: 'goLineUp',
-		j: 'goLineDown',
-		'mod+j': 'goLineDown',
-		'mod+p': 'goLineUp',
-		w: 'goGroupRight',
-		b: 'goGroupLeft',
-		down: 'goLineDown',
-		up: 'goLineUp',
-		right: 'goColumnRight',
-		left: 'goColumnLeft',
-		pagedown: 'goPageDown',
-		pageup: 'goPageUp'
+		h: 'cursor.goBackwards',
+		'mod+h': 'cursor.goBackwards',
+		l: 'cursor.goForward',
+		0: 'line.goStart',
+		$: 'line.goEnd',
+		home: 'line.goStart',
+		end: 'line.goEnd',
+		'mod+home': 'cursor.goStart',
+		'mod+end': 'cursor.goEnd',
+		'shift+g': 'cursor.goEnd',
+		'shift+left': 'word.goNext',
+		'shift+right': 'word.goPrevious',
+		k: 'cursor.goUp',
+		j: 'cursor.goDown',
+		'mod+j': 'cursor.goDown',
+		'mod+p': 'cursor.goUp',
+		w: 'word.goNext',
+		b: 'word.goPrevious',
+		down: 'cursor.goDown',
+		up: 'cursor.goUp',
+		right: 'cursor.goForward',
+		left: 'cursor.goBackwards',
+		pagedown: 'page.goDown',
+		pageup: 'page.goUp'
 	},
 
 	PRINTCHAR = {
@@ -40,13 +40,18 @@ var
 		tab: "\t"
 	}
 ;
-
+	
 function map(keymap, prefix, postfix)
 {
-	return _.reduce(keymap, function(result, v, k) {
+	var result = {}, k, v;
+	
+	for (k in keymap)
+	{
+		v = keymap[k];
 		result[k] = count((prefix ? prefix + '; ' : '') + v + (postfix ? '; ' + postfix : ''));
-		return result;
-	}, {});
+	}
+	
+	return result;
 }
 
 function count(action, def)
@@ -82,7 +87,10 @@ function countParam(action)
 function setState(name)
 {
 	var fn = function() {
-		ide.editor.keymap.setState(name);
+		if (ide.editor)
+			ide.editor.keymap.setState(name);
+		else
+			ide.keymap.setState(name);
 	};
 
 	fn.action = name;
@@ -118,7 +126,7 @@ function Register(name)
 	this.update();
 }
 
-_.extend(Register.prototype, {
+cxl.extend(Register.prototype, {
 
 	name: null,
 	data: null,
@@ -133,17 +141,6 @@ _.extend(Register.prototype, {
 		this.data = data || '';
 		vim.data('register.' + this.name, this.data);
 		vim.register = vim.defaultRegister;
-	}
-
-});
-
-var RegisterList = ide.Editor.List.extend({
-
-	initialize: function()
-	{
-		vim.registers.forEach(function(a) {
-
-		}, this);
 	}
 
 });
@@ -164,12 +161,9 @@ var vim = new ide.Plugin({
 	setupEditor: function(editor)
 	{
 		// Start in normal mode
-		if (editor.keymap instanceof ide.KeyMap)
-		{
-			editor.keymap.setState('vim');
-			editor.cmd('inputDisable');
-			editor.option('showCursorWhenSelecting', true);
-		}
+		editor.keymap.setState('vim');
+		editor.cmd('insert.disable');
+		editor.cmd('selection.showCursor');
 	},
 
 	initRegisters: function()
@@ -194,16 +188,13 @@ var vim = new ide.Plugin({
 	{
 		this.updateRegisters();
 	},
-
+	
 	ready: function()
 	{
 		var keymap = ide.project.get('keymap');
 
 		if (keymap && keymap!=='vim')
 			return;
-
-		if (!keymap)
-			ide.project.set('keymap', 'vim');
 
 		this.initRegisters();
 
@@ -215,16 +206,16 @@ var vim = new ide.Plugin({
 
 		y: 'yank',
 		yank: function() {
-			yank(ide.editor.getSelection());
+			yank(ide.editor.selection.value);
 		},
 
 		yankBlock: function()
 		{
 		var
 			editor = ide.editor,
-			data = editor.somethingSelected() ?
-				editor.getSelection() :
-				editor.getLine()
+			data = editor.selection.somethingSelected() ?
+				editor.selection.value :
+				editor.line.value
 		;
 			yank("\n" + data);
 		},
@@ -254,17 +245,17 @@ var vim = new ide.Plugin({
 			editor = ide.editor,
 			data = this.register.data
 		;
-			if (data[0]==="\n" && !editor.somethingSelected())
-				editor.cmd('goLineEnd');
+			if (data[0]==="\n" && !editor.selection.somethingSelected())
+				editor.cmd('line.goEnd');
 
-			editor.replaceSelection(this.register.data);
+			editor.selection.replace(this.register.data);
 		},
 
 		'vim.mode.insert': function()
 		{
 		var
 			editor = ide.editor,
-			support = editor.cmd('inputEnable')
+			support = editor.cmd('insert.enable')
 		;
 			if (support !== ide.Pass)
 				editor.keymap.setState('vim-insert');
@@ -277,8 +268,8 @@ var vim = new ide.Plugin({
 			lastInsert = editor.cmd('lastInsert')
 		;
 			editor.keymap.setState('vim');
-			editor.cmd('inputDisable');
-			editor.cmd('selectClear');
+			editor.cmd('insert.disable');
+			editor.cmd('selection.clear');
 
 			if (lastInsert)
 				vim.dotRegister.set(lastInsert);
@@ -296,16 +287,16 @@ var vim = new ide.Plugin({
 	// Vim style bindings. NOTE Follow vimdoc index order
 	shortcuts: {
 
-		vim: _.extend({
+		vim: cxl.extend({
 
-			backspace: count('goCharLeft'),
-			space: count('goCharRight'),
+			backspace: count('cursor.goBackwards'),
+			space: count('cursor.goForward'),
 			'/': 'searchbar',
 			'?': 'searchbarReverse',
 			'*': 'search',
-			'< <': count('indentLess'),
-			'= =': 'indentAuto',
-			'> >': count('indentMore'),
+			'< <': count('indent.less'),
+			'= =': 'indent.auto',
+			'> >': count('indent.more'),
 			'&': count('searchReplace'),
 			'"': setState('vim-register'),
 			':': 'ex',
@@ -329,51 +320,51 @@ var vim = new ide.Plugin({
 			'mod+d': countParam('scrollLineDown'),
 			'mod+f': count('scrollScreenDown'),
 			'mod+g': 'showInfo',
-			'mod+r': count('redo'),
+			'mod+r': count('history.redo'),
 			'mod+u': countParam('scrollLineUp'),
 			'mod+y': countParam('scrollLineDown'),
 
-			'shift+a': 'goLineEnd; vim.mode.insert',
-			'shift+c': 'startSelect; goLineEnd; endSelect; delSelection; vim.mode.insert',
+			'shift+a': 'line.goEnd; vim.mode.insert',
+			'shift+c': 'select.begin; line.goEnd; select.end; selection.remove; vim.mode.insert',
 			'shift+d': 'delWrappedLineRight; vim.mode.insert',
-			'shift+o': 'goLineUp; goLineEnd; vim.mode.insert; insertLine',
-			'shift+n': count('findPrev'),
-			'shift+v': 'selectLine; vim.mode.blockSelect',
+			'shift+o': 'cursor.goUp; line.goEnd; vim.mode.insert; insert.line',
+			'shift+n': count('search.previous'),
+			'shift+v': 'line.select; vim.mode.blockSelect',
 			'shift+y': 'yankBlock',
 
-			'a': count('goColumnRight; vim.mode.insert'),
+			'a': count('cursor.goForward; vim.mode.insert'),
 			'c': 'vim.mode.change',
 			'd': 'vim.mode.delete',
 			'g': setState('vim-go'),
 			'g a': 'ascii',
 			'g shift+d': 'ijump',
-			'g t': 'editorNext',
-			'g g': 'goDocStart',
-			'g shift+t': 'editorPrevious',
+			'g t': 'workspace.next',
+			'g g': 'cursor.goStart',
+			'g shift+t': 'workspace.previous',
 			'g f': 'find',
 			'i': 'vim.mode.insert',
-			'n': count('findNext'),
-			'o': 'goLineEnd; vim.mode.insert; insertLine',
+			'n': count('search.next'),
+			'o': 'line.goEnd; vim.mode.insert; insert.line',
 			'p': count('put'),
 			'r': 'vim.mode.replace',
-			'u': count('undo'),
+			'u': count('history.undo'),
 			'v': 'vim.mode.select',
 			'y': 'vim.mode.yank',
 			'z c': 'fold',
 			'z o': 'unfold',
 
 			insert: 'vim.mode.insert',
-			enter: 'goLineDown'
+			enter: 'cursor.enter'
 
 		}, map(MOTION)),
 
 		'vim-go': {
 			a: 'ascii; vim.mode.normal',
 			'shift+d': 'ijump; vim.mode.normal',
-			t: count('vim.mode.normal; editorNext'),
-			g: 'goDocStart; vim.mode.normal',
-			'shift+t': count('vim.mode.normal; editorPrevious;'),
-			f: 'find; vim.mode.normal',
+			t: count('vim.mode.normal; workspace.next'),
+			g: 'cursor.goStart; vim.mode.normal',
+			'shift+t': count('vim.mode.normal; workspace.previous;'),
+			f: 'vim.mode.normal; find',
 			all: 'vim.mode.normal'
 		},
 
@@ -431,96 +422,97 @@ var vim = new ide.Plugin({
 
 		},
 
-		'vim-yank': _.extend({
+		'vim-yank': cxl.extend({
 			esc: 'vim.mode.normal',
 			'mod+[': 'vim.mode.normal',
 			'y': 'yankBlock; vim.mode.normal'
-		}, map(MOTION, 'selectStart', 'selectEnd; yank; selectClear; vim.mode.normal')),
+		}, map(MOTION, 'selection.begin', 'selection.end; yank; selection.clear; vim.mode.normal')),
 
-		'vim-change': _.extend({
+		'vim-change': cxl.extend({
 			esc: 'vim.mode.normal',
 			'mod+[': 'vim.mode.normal'
-		}, map(MOTION, 'selectStart', 'selectEnd; delSelection; vim.mode.insert')),
+		}, map(MOTION, 'selection.begin', 'selection.end; selection.remove; vim.mode.insert')),
 
-		'vim-delete': _.extend({
+		'vim-delete': cxl.extend({
 			esc: 'vim.mode.normal',
 			'mod+[': 'vim.mode.normal',
-			'd': count('yankBlock; delLine; vim.mode.normal'),
-		}, map(MOTION, 'selectStart', 'selectEnd; yank; delSelection; vim.mode.normal')),
+			'd': count('yankBlock; line.remove; vim.mode.normal'),
+		}, map(MOTION, 'selection.begin', 'selection.end; yank; selection.remove; vim.mode.normal')),
 
-		'vim-select': _.extend({
-			'd': 'yank; delSelection; vim.mode.normal',
+		'vim-select': cxl.extend({
+			'd': 'yank; selection.remove; vim.mode.normal',
 			'y': 'yank; vim.mode.normal',
-			'>': count('indentMore; vim.mode.normal'),
-			'<': count('indentLess; vim.mode.normal'),
+			'>': count('indent.more; vim.mode.normal'),
+			'<': count('indent.less; vim.mode.normal'),
 			'p': count('put; vim.mode.normal'),
-			'=': 'indentAuto; vim.mode.normal',
+			'=': 'indent.auto; vim.mode.normal',
 			':': 'ex',
 
 			esc: 'vim.mode.normal',
 			'mod+[': 'vim.mode.normal'
-		}, map(MOTION, 'selectStart', 'selectEnd')),
+		}, map(MOTION, 'selection.begin', 'selection.end')),
 
-		'vim-block-select': _.extend({
-			d: 'yankBlock; delSelection; vim.mode.normal',
+		'vim-block-select': cxl.extend({
+			d: 'yankBlock; selection.remove; vim.mode.normal',
 			y: 'yankBlock; vim.mode.normal',
 			p: count('put; vim.mode.normal'),
-			'>': count('indentMore; vim.mode.normal'),
-			'<': count('indentLess; vim.mode.normal'),
-			'=': 'indentAuto; vim.mode.normal',
+			'>': count('indent.more; vim.mode.normal'),
+			'<': count('indent.less; vim.mode.normal'),
+			'=': 'indent.auto; vim.mode.normal',
 			':': 'ex',
 
 			esc: 'vim.mode.normal',
 			'mod+[': 'vim.mode.normal'
-		 }, map(MOTION, 'selectStart', 'selectLine; selectEnd')),
+		 }, map(MOTION, 'selection.begin', 'line.select; selection.end')),
 
 		'vim-insert': {
 			'mod+@': 'insertDotRegister; vim.mode.normal',
 			'mod+a': 'insertDotRegister',
-			'mod+d': 'indentLess',
-			'mod+h': 'delCharBefore',
-			'mod+i': 'insertTab',
-			'mod+j': 'insertLine',
-			'mod+m': 'insertLine',
+			'mod+d': 'indent.less',
+			'mod+h': 'insert.backspace',
+			'mod+i': 'insert.tab',
+			'mod+j': 'insert.line',
+			'mod+m': 'insert.line',
 			'mod+n': 'search',
-			'mod+t': 'indentMore',
-			'mod+w': 'delWordAfter',
+			'mod+t': 'indent.more',
+			'mod+w': 'word.removeNext',
 			'alt+enter': 'ex',
 			'f1': 'help',
 			'f10': 'assist',
 
-			backspace: 'delCharBefore',
-			tab: 'insertTab',
-			del: 'delCharAfter',
-			pageup: 'goPageUp',
-			pagedown: 'goPageDown',
-			down: 'goLineDown',
-			up: 'goLineUp',
-			right: 'goColumnRight',
-			left: 'goColumnLeft',
-			end: 'goLineEnd',
-			home: 'goLineStart',
-			enter: 'insertLine',
-			'shift+up': 'goPageUp',
-			'shift+down': 'goPageDown',
-			'mod+home': 'goDocStart',
-			'mod+end': 'goDocEnd',
-			'mod+backspace': 'delGroupBefore',
-			'mod+left': 'goGroupLeft',
-			'mod+right': 'goGroupRight',
-			'shift+left': 'goGroupLeft',
-			'shift+right': 'goGroupRight',
+			backspace: 'insert.backspace',
+			tab: 'insert.tab',
+			del: 'insert.del',
+			pageup: 'page.goUp',
+			pagedown: 'page.goDown',
+			down: 'cursor.goDown',
+			up: 'cursor.goUp',
+			right: 'cursor.goForward',
+			left: 'cursor.goBackwards',
+			end: 'line.goEnd',
+			home: 'line.goStart',
+			enter: 'insert.line',
+			'shift+up': 'page.goUp',
+			'shift+down': 'page.goDown',
+			'mod+home': 'cursor.goStart',
+			'mod+end': 'cursor.goEnd',
+			'mod+backspace': 'word.removePrevious',
+			'mod+left': 'word.goPrevious',
+			'mod+right': 'word.goNext',
+			'shift+left': 'word.goPrevious',
+			'shift+right': 'word.goNext',
 			'esc': 'vim.mode.normal',
 			'mod+[': 'vim.mode.normal',
-			'mod+del': 'delGroupAfter'
+			'mod+del': 'word.removeNext'
 		}
 	}
 
 });
 
+ide.keymap.defaultState = 'vim';
 ide.plugins.register('vim', vim);
 ide.plugins.on('editor.keymap', function(keymap, editor) {
-	editor.title.setTag('state', keymap.state);
+	editor.header.setTag('state', keymap.state);
 });
 
-})(this.ide, this._);
+})(this.ide);
