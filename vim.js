@@ -141,6 +141,7 @@ cxl.extend(Register.prototype, {
 		this.data = data || '';
 		vim.data('register.' + this.name, this.data);
 		vim.register = vim.defaultRegister;
+		ide.plugins.trigger('vim.register.change', this);
 	}
 
 });
@@ -219,6 +220,9 @@ var vim = new ide.Plugin({
 		;
 			yank("\n" + data);
 		},
+		
+		foldopen: 'fold.open',
+		foldclose: 'fold.close',
 
 		'insert.register.dot': function()
 		{
@@ -265,8 +269,11 @@ var vim = new ide.Plugin({
 		{
 		var
 			editor = ide.editor,
-			lastInsert = editor.cmd('lastInsert')
+			lastInsert = editor.cmd('history.lastInsert')
 		;
+			if (lastInsert===ide.Pass)
+				lastInsert = '';
+			
 			editor.keymap.setState('vim');
 			editor.cmd('insert.disable');
 			editor.cmd('selection.clear');
@@ -282,6 +289,46 @@ var vim = new ide.Plugin({
 		'vim.mode.replace': setState('vim-replace'),
 		'vim.mode.blockSelect': setState('vim-block-select'),
 		'vim.mode.register': setState('vim-register')
+	},
+	
+	commands: {
+		
+		registers: {
+			
+			fn: function()
+			{
+				var i, editor, registers=this.registers;
+				
+				function getRegisterItems()
+				{
+					var children = [];
+					
+					for (var i in registers)
+						children.push({
+							code: i,
+							html: '<pre>' + cxl.escape(registers[i].data || '') + '</pre>'
+						});
+					
+					return children;
+				}
+				
+				editor = new ide.ListEditor({
+					title: 'registers',
+					plugin: this,
+					children: getRegisterItems()
+				});
+				
+				editor.listenTo(ide.plugins, 'vim.register.change', function() {
+					editor.reset();
+					editor.add(getRegisterItems());
+				});
+				
+				return editor;
+			},
+			description: 'Display the contents of all numbered and named registers'
+			
+		}
+		
 	},
 
 	// Vim style bindings. NOTE Follow vimdoc index order
@@ -350,8 +397,8 @@ var vim = new ide.Plugin({
 			'u': count('history.undo'),
 			'v': 'vim.mode.select',
 			'y': 'vim.mode.yank',
-			'z c': 'fold',
-			'z o': 'unfold',
+			'z c': 'fold.close',
+			'z o': 'fold.open',
 
 			insert: 'vim.mode.insert',
 			enter: 'cursor.enter'
