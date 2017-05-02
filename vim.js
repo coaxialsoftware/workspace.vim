@@ -254,6 +254,28 @@ var vim = new ide.Plugin({
 
 			editor.selection.replace(this.register.data);
 		},
+		
+		'vim.swapCase': function()
+		{
+		var
+			editor = ide.editor,
+			current = editor.cursor.value,
+			row, col, upper
+		;
+			if (current)
+			{
+				upper = current.toUpperCase();
+				
+				if (upper === current)
+					upper = current.toLowerCase();
+				
+				row = editor.cursor.row;
+				col = editor.cursor.column;
+				
+				editor.range.create(row, col, row, col+1).replace(upper);
+				editor.cursor.goForward();
+			}
+		},
 
 		'vim.mode.insert': function()
 		{
@@ -292,6 +314,8 @@ var vim = new ide.Plugin({
 	},
 	
 	commands: {
+		
+		messages: 'log',
 		
 		registers: {
 			
@@ -348,6 +372,8 @@ var vim = new ide.Plugin({
 			'"': setState('vim-register'),
 			':': 'ex',
 			'#': count('findPrev'),
+			// TODO ?
+			'~': count('vim.swapCase'),
 
 			'f1': 'help',
 			'f10': 'assist',
@@ -414,7 +440,7 @@ var vim = new ide.Plugin({
 			f: 'vim.mode.normal; find',
 			all: 'vim.mode.normal'
 		},
-
+		
 		'vim-count': {
 			esc: 'vim.mode.normal',
 			'mod+[': 'vim.mode.normal',

@@ -1,6 +1,6 @@
 
 {
 	"name": "@cxl/workspace.vim",
-	"version": "0.6.0",
+	"version": "0.7.0",
 	"description": "Vim key bindings and commands."
 }
