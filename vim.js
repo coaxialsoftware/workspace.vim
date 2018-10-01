@@ -4,8 +4,6 @@
  */
 
 (function(ide) {
-"use strict";
-
 var
 	MOTION = {
 		h: 'cursor.goBackwards',
@@ -40,17 +38,17 @@ var
 		tab: "\t"
 	}
 ;
-	
+
 function map(keymap, prefix, postfix)
 {
 	var result = {}, k, v;
-	
+
 	for (k in keymap)
 	{
 		v = keymap[k];
 		result[k] = count((prefix ? prefix + '; ' : '') + v + (postfix ? '; ' + postfix : ''));
 	}
-	
+
 	return result;
 }
 
@@ -120,31 +118,27 @@ function enterCountMode(key) {
 	ide.editor.keymap.setState('vim-count');
 }
 
-function Register(name)
+class Register
 {
-	this.name = name;
-	this.update();
-}
+	constructor(name)
+	{
+		this.name = name;
+		this.update();
+	}
 
-cxl.extend(Register.prototype, {
-
-	name: null,
-	data: null,
-
-	update: function()
+	update()
 	{
 		this.data = vim.data('register.' + this.name);
-	},
+	}
 
-	set: function(data)
+	set(data)
 	{
 		this.data = data || '';
 		vim.data('register.' + this.name, this.data);
 		vim.register = vim.defaultRegister;
 		ide.plugins.trigger('vim.register.change', this);
 	}
-
-});
+}
 
 var vim = new ide.Plugin({
 
@@ -158,13 +152,18 @@ var vim = new ide.Plugin({
 	// Current Count
 	count: null,
 
-	// VIM Mode only supported for editors that have their own keynull.
+	icon: 'vim',
+
 	setupEditor: function(editor)
 	{
-		// Start in normal mode
-		editor.keymap.setState('vim');
-		editor.cmd('insert.disable');
-		editor.cmd('selection.showCursor');
+		// VIM Mode only supported for editors that have the cursor feature.
+		if (editor.cursor)
+		{
+			// Start in normal mode
+			editor.keymap.setState('vim');
+			editor.cmd('insert.disable');
+			editor.cmd('selection.showCursor');
+		}
 	},
 
 	initRegisters: function()
@@ -189,7 +188,7 @@ var vim = new ide.Plugin({
 	{
 		this.updateRegisters();
 	},
-	
+
 	ready: function()
 	{
 		var keymap = ide.project.get('keymap');
@@ -199,13 +198,18 @@ var vim = new ide.Plugin({
 
 		this.initRegisters();
 
+		ide.resources.registerSVGIcon('vim', '<g stroke="#000" stroke-width="5"><path fill="#19953f" d="M128 9L8 130l119 120 120-121L128 9z"/><path fill="#d0d0cf" d="M26 21l-5 5v19l6 5h7v168l7 8h22L241 46V27l-5-5-80-1-5 7v16l5 7h6l-62 60V51h8l5-6V29l-6-7-81-1z"/><path fill="#d0d0cf" d="M137 137l4-4 12 1 4 4-4 12-4 3h-12l-4-4 4-12zM122 160h28l-15 45h6l-3 9h-27l14-44-7 1 4-11zM157 160l-3 10h6l-15 44h24l3-9h-6l8-26 15-1-11 35 23 1 3-9h-5l9-26h13l-11 35h24l3-8-6-1 12-37-5-7h-14l-6 6h-6l-6-7h-12l-6 6h-6l-6-6h-19z"/></g>', '0 0 256 256');
+
 		ide.plugins.on('workspace.add', this.setupEditor, this);
 		window.addEventListener('focus', this.onFocus.bind(this));
 	},
 
 	editorCommands: {
 
+		cn: 'hints.next',
+		cnext: 'hints.next',
 		y: 'yank',
+
 		yank: function() {
 			yank(ide.editor.selection.value);
 		},
@@ -220,7 +224,7 @@ var vim = new ide.Plugin({
 		;
 			yank("\n" + data);
 		},
-		
+
 		foldopen: 'fold.open',
 		foldclose: 'fold.close',
 
@@ -254,7 +258,7 @@ var vim = new ide.Plugin({
 
 			editor.selection.replace(this.register.data);
 		},
-		
+
 		'vim.swapCase': function()
 		{
 		var
@@ -265,13 +269,13 @@ var vim = new ide.Plugin({
 			if (current)
 			{
 				upper = current.toUpperCase();
-				
+
 				if (upper === current)
 					upper = current.toLowerCase();
-				
+
 				row = editor.cursor.row;
 				col = editor.cursor.column;
-				
+
 				editor.range.create(row, col, row, col+1).replace(upper);
 				editor.cursor.goForward();
 			}
@@ -295,7 +299,7 @@ var vim = new ide.Plugin({
 		;
 			if (lastInsert===ide.Pass)
 				lastInsert = '';
-			
+
 			editor.keymap.setState('vim');
 			editor.cmd('insert.disable');
 			editor.cmd('selection.clear');
@@ -312,47 +316,47 @@ var vim = new ide.Plugin({
 		'vim.mode.blockSelect': setState('vim-block-select'),
 		'vim.mode.register': setState('vim-register')
 	},
-	
+
 	commands: {
-		
+
 		messages: 'log',
-		
+
 		registers: {
-			
+
 			fn: function()
 			{
 				var i, editor, registers=this.registers;
-				
+
 				function getRegisterItems()
 				{
 					var children = [];
-					
+
 					for (var i in registers)
 						children.push({
 							code: i,
 							html: '<pre>' + cxl.escape(registers[i].data || '') + '</pre>'
 						});
-					
+
 					return children;
 				}
-				
+
 				editor = new ide.ListEditor({
 					title: 'registers',
 					plugin: this,
 					children: getRegisterItems()
 				});
-				
+
 				editor.listenTo(ide.plugins, 'vim.register.change', function() {
 					editor.reset();
 					editor.add(getRegisterItems());
 				});
-				
+
 				return editor;
 			},
 			description: 'Display the contents of all numbered and named registers'
-			
+
 		}
-		
+
 	},
 
 	// Vim style bindings. NOTE Follow vimdoc index order
@@ -440,7 +444,7 @@ var vim = new ide.Plugin({
 			f: 'vim.mode.normal; find',
 			all: 'vim.mode.normal'
 		},
-		
+
 		'vim-count': {
 			esc: 'vim.mode.normal',
 			'mod+[': 'vim.mode.normal',
