@@ -3,8 +3,9 @@
  *
  */
 
-(function(ide) {
-var
+(ide => {
+"use strict";
+const
 	MOTION = {
 		h: 'cursor.goBackwards',
 		'mod+h': 'cursor.goBackwards',
@@ -79,17 +80,41 @@ function countParam(action)
 	return fn;
 }
 
+function parseSubstituteParameters(search, replace, options)
+{
+const
+	split = replace.search(/[^\\]\//),
+	range = { line: ide.editor.rowStart }
+;
+	if (split !== -1)
+	{
+		options = replace.slice(split+2);
+		replace = replace.slice(0, split+1);
+	}
+
+	if (options && options.includes('g'))
+		search = new RegExp(search.source, 'g');
+
+	return [ search, replace, options ];
+}
+
+function substituteRange(range, search, replace, options)
+{
+	const newLine = range.value.replace(search, replace);
+	range.replace(newLine);
+}
+
 /**
  * Helper function for commands. Makes sure there is a valid editor
  */
 function setState(name)
 {
-	var fn = function() {
+	function fn() {
 		if (ide.editor)
 			ide.editor.keymap.setState(name);
 		else
 			ide.keymap.setState(name);
-	};
+	}
 
 	fn.action = name;
 	return fn;
@@ -210,11 +235,11 @@ var vim = new ide.Plugin({
 		cnext: 'hints.next',
 		y: 'yank',
 
-		yank: function() {
+		yank() {
 			yank(ide.editor.selection.value);
 		},
 
-		yankBlock: function()
+		yankBlock()
 		{
 		var
 			editor = ide.editor,
@@ -228,12 +253,12 @@ var vim = new ide.Plugin({
 		foldopen: 'fold.open',
 		foldclose: 'fold.close',
 
-		'insert.register.dot': function()
+		'insert.register.dot'()
 		{
 			ide.editor.cmd('insert', [ vim.dotRegister.data ]);
 		},
 
-		insertCharBelow: function()
+		insertCharBelow()
 		{
 			var e = ide.editor, pos, ch;
 
@@ -248,7 +273,7 @@ var vim = new ide.Plugin({
 			}
 		},
 
-		put: function() {
+		put() {
 		var
 			editor = ide.editor,
 			data = this.register.data
@@ -259,7 +284,29 @@ var vim = new ide.Plugin({
 			editor.selection.replace(this.register.data);
 		},
 
-		'vim.swapCase': function()
+		// Line search and replace
+		s(search, replace, options)
+		{
+			if (!ide.editor.line)
+				return;
+
+			[ search, replace, options ] = parseSubstituteParameters(search, replace, options);
+			substituteRange(ide.editor.line.current, search, replace, options);
+		},
+
+		substitute: 's',
+
+		// Whole file search and replace
+		'%s'(search, replace, options)
+		{
+			if (!ide.editor.range)
+				return;
+
+			[ search, replace, options ] = parseSubstituteParameters(search, replace, options);
+			substituteRange(ide.editor.document.getRange(), search, replace, options);
+		},
+
+		'vim.swapCase'()
 		{
 		var
 			editor = ide.editor,
@@ -281,7 +328,7 @@ var vim = new ide.Plugin({
 			}
 		},
 
-		'vim.mode.insert': function()
+		'vim.mode.insert'()
 		{
 		var
 			editor = ide.editor,
@@ -291,7 +338,7 @@ var vim = new ide.Plugin({
 				editor.keymap.setState('vim-insert');
 		},
 
-		'vim.mode.normal': function()
+		'vim.mode.normal'()
 		{
 		var
 			editor = ide.editor,
