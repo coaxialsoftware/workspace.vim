@@ -1,8 +1,3 @@
-/*
- * workspace - vim Plugin
- *
- */
-
 (ide => {
 "use strict";
 const
@@ -55,15 +50,15 @@ function map(keymap, prefix, postfix)
 
 function count(action, def)
 {
-	var handler = ide.action(action);
+	const handler = ide.action(action);
 
-	var fn = function() {
+	function fn() {
 		var i = vim.count || def || 1;
 		while (i--)
 			handler();
 
 		vim.count = null;
-	};
+	}
 
 	fn.action = action;
 	return fn;
@@ -71,10 +66,10 @@ function count(action, def)
 
 function countParam(action)
 {
-	var fn = function() {
+	function fn() {
 		ide.run(action, [ vim.count ]);
 		vim.count = null;
-	};
+	}
 
 	fn.action = action;
 	return fn;
@@ -165,7 +160,7 @@ class Register
 	}
 }
 
-var vim = new ide.Plugin({
+const vim = new ide.Plugin({
 
 	registers: null,
 	// Active register
@@ -179,7 +174,7 @@ var vim = new ide.Plugin({
 
 	icon: 'vim',
 
-	setupEditor: function(editor)
+	setupEditor(editor)
 	{
 		// VIM Mode only supported for editors that have the cursor feature.
 		if (editor.cursor)
@@ -191,7 +186,7 @@ var vim = new ide.Plugin({
 		}
 	},
 
-	initRegisters: function()
+	initRegisters()
 	{
 		var r = this.registers = {
 			'"': this.register = this.defaultRegister = new Register('"'),
@@ -203,18 +198,18 @@ var vim = new ide.Plugin({
 			r[i] = new Register(i);
 	},
 
-	updateRegisters: function()
+	updateRegisters()
 	{
 		for (var i in this.registers)
 			this.registers[i].update();
 	},
 
-	onFocus: function()
+	onFocus()
 	{
 		this.updateRegisters();
 	},
 
-	ready: function()
+	ready()
 	{
 		var keymap = ide.project.get('keymap');
 
@@ -370,13 +365,13 @@ var vim = new ide.Plugin({
 
 		registers: {
 
-			fn: function()
+			fn()
 			{
 				var i, editor, registers=this.registers;
 
 				function getRegisterItems()
 				{
-					var children = [];
+					const children = [];
 
 					for (var i in registers)
 						children.push({
@@ -496,7 +491,8 @@ var vim = new ide.Plugin({
 			esc: 'vim.mode.normal',
 			'mod+[': 'vim.mode.normal',
 
-			all: function(key) {
+			all(key)
+			{
 				if (key.length===1 && /\d/.test(key))
 					vim.count += key;
 				else
@@ -522,7 +518,7 @@ var vim = new ide.Plugin({
 			8: setRegister(8),
 			9: setRegister(9),
 
-			all: function()
+			all()
 			{
 				ide.run('vim.mode.normal');
 			}
@@ -533,7 +529,7 @@ var vim = new ide.Plugin({
 			esc: 'vim.mode.normal',
 			'mod+[': 'vim.mode.normal',
 
-			all: function(key) {
+			all(key) {
 
 				if (key in PRINTCHAR)
 					key = PRINTCHAR[key];
